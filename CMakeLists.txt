@@ -5,7 +5,7 @@ set(TARGET "RawTCP")
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(${TARGET} main.c)
+add_executable(${TARGET} main.c includes.h)
 
 add_custom_command( TARGET RawTCP POST_BUILD
                     COMMAND sudo chown root:root ${TARGET}
