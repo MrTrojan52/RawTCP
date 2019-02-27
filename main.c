@@ -35,6 +35,8 @@ int main(int argc, char *argv[])
 
     struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
 
+    struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
+
     struct sockaddr_in sin, din;
 
     int one = 1;
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
 
     ip->typeOfService = 16;
 
-    ip->totalLength = sizeof(struct ipheader) + sizeof(struct tcpheader);
+    ip->totalLength = sizeof(struct ipheader) + sizeof(struct tcpheader) + sizeof(struct tcpheaderOptions);
 
     ip->identification = htons(54321);
 
@@ -143,21 +145,50 @@ int main(int argc, char *argv[])
 
     tcp->acknowledgeNumber = 0;
 
-    tcp->dataOffset = 5;
+    tcp->dataOffset = 10;
 
-    tcp->controlBits = TCPFlag_SYN;
+    tcp->reserved = 0;
 
-    tcp->window = htons(16*1024);
+    tcp->controlBits = TCPFlag_FIN;
+
+    tcp->window = htons(32768);
 
     tcp->checkSum = 0; // Done by kernel
 
     tcp->urgentPointer = 0;
 
+// TCP OPTIONS
+
+    tcpOptions->tcph_mssOpt       = 2;
+
+    tcpOptions->tcph_mssLen       = 4;
+
+    tcpOptions->tcph_winOpt       = 3;
+
+    tcpOptions->tcph_winLen       = 3;
+
+    tcpOptions->tcph_sack         = 4;
+
+    tcpOptions->tcph_sackLen      = 2;
+
+    tcpOptions->tcph_win          = 7;
+
+    tcpOptions->tcph_winNOP       = 1;
+
+    tcpOptions->tcph_mss          = htons(1460);
+
+    tcpOptions->tcph_timeOpt      = 8;
+
+    tcpOptions->tcph_timeLen      = 10;
+
+    tcpOptions->tcph_time         = 0xdb2b0d00;
+
 // IP checksum calculation
-
-    ip->headerChecksum = csum((unsigned short *) buffer, (sizeof(struct ipheader) + sizeof(struct tcpheader)));
-
-
+    buffer[ip->totalLength++] = 'T';
+    buffer[ip->totalLength++] = 'E';
+    buffer[ip->totalLength++] = 'S';
+    buffer[ip->totalLength++] = 'T';
+//    ip->headerChecksum = csum((unsigned short *) buffer, ip->totalLength);
 
 // Inform the kernel do not fill up the headers' structure, we fabricated our own
 

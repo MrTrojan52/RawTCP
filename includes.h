@@ -18,13 +18,17 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#define TCPFlag_URG 0
-#define TCPFlag_ACK 2
-#define TCPFlag_PSH 4
-#define TCPFlag_RST 8
-#define TCPFlag_SYN 16
-#define TCPFlag_FYN 32
+#define TCPFlag_FIN 1
+#define TCPFlag_SYN 2
+#define TCPFlag_RST 4
+#define TCPFlag_PSH 8
+#define TCPFlag_ACK 16
+#define TCPFlag_URG 32
+#define TCPFlag_ECE 64
+#define TCPFlag_CWR 128
+#define TCPFlag_NS  256
 
+//TODO: Исправить косяк с битовыми полями
 
 #define PCKT_LEN 8192
 
@@ -32,54 +36,54 @@
 struct ipheader {
 #if __BYTE_ORDER == BIG_ENDIAN
 
-    unsigned char      version:4;
+    u_int8_t           version:4;
 
-    unsigned char      IHL:4;
+    u_int8_t           IHL:4;
 
-    unsigned char      typeOfService;
+    u_int8_t           typeOfService;
 
-    unsigned short     totalLength;
+    u_int16_t          totalLength;
 
-    unsigned short     identification;
+    u_int16_t          identification;
 
-    unsigned short     flags:3;
+    u_int16_t          flags:3;
 
-    unsigned short     fragmentOffset:13;
+    u_int16_t          fragmentOffset:13;
 
-    unsigned char      timeToLive;
+    u_int8_t           timeToLive;
 
-    unsigned char      protocol;
+    u_int8_t           protocol;
 
-    unsigned short     headerChecksum;
+    u_int16_t          headerChecksum;
 
-    unsigned int       sourceIP;
+    u_int32_t          sourceIP;
 
-    unsigned int       destinationIP;
+    u_int32_t          destinationIP;
 #elif __BYTE_ORDER == LITTLE_ENDIAN
 
-    unsigned char      IHL:4;
+    u_int8_t           IHL:4;
 
-    unsigned char      version:4;
+    u_int8_t           version:4;
 
-    unsigned char      typeOfService;
+    u_int8_t           typeOfService;
 
-    unsigned short     totalLength;
+    u_int16_t          totalLength;
 
-    unsigned short     identification;
+    u_int16_t          identification;
 
-    unsigned short     fragmentOffset:13;
+    u_int16_t          fragmentOffset:13;
 
-    unsigned short     flags:3;
+    u_int16_t          flags:3;
 
-    unsigned char      timeToLive;
+    u_int8_t           timeToLive;
 
-    unsigned char      protocol;
+    u_int8_t           protocol;
 
-    unsigned short     headerChecksum;
+    u_int16_t          headerChecksum;
 
-    unsigned int       sourceIP;
+    u_int32_t          sourceIP;
 
-    unsigned int       destinationIP;
+    u_int32_t          destinationIP;
 
 #else
 #error MIDDLE-ENDIAN SYSTEM PIZDEC
@@ -92,41 +96,47 @@ struct ipheader {
 /* Structure of a TCP header */
 
 struct tcpheader {
-
-    unsigned short     sourcePort;
-
-    unsigned short     destinationPort;
-
-    unsigned int       sequenceNumber;
-
-    unsigned int       acknowledgeNumber;
-
+    u_int16_t           sourcePort;
+    u_int16_t           destinationPort;
+    u_int32_t           sequenceNumber;
+    u_int32_t           acknowledgeNumber;
 #if __BYTE_ORDER == BIG_ENDIAN
-
-    unsigned int       dataOffset:4;
-
-    unsigned int       reserved:6;
-
-    unsigned int       controlBits:6;
-
-    unsigned int       window:16;
+    u_int16_t           dataOffset:4;
+    u_int16_t           reserved:3;
+    u_int16_t           controlBits:9;
 #elif __BYTE_ORDER == LITTLE_ENDIAN
-
-    unsigned int       window:16;
-
-    unsigned int       controlBits:6;
-
-    unsigned int       reserved:6;
-
-    unsigned int       dataOffset:4;
+    u_int16_t           controlBits:9;
+    u_int16_t           reserved:3;
+    u_int16_t           dataOffset:4;
 #else
 #error MIDDLE-ENDIAN SYSTEM PIZDEC
 #endif
+    u_int16_t           window;
+    u_int16_t           checkSum;
+    u_int16_t           urgentPointer;
+};
 
-    unsigned short     checkSum;
+struct tcpheaderOptions
+{
 
-    unsigned short     urgentPointer;
-
+    u_int16_t
+            tcph_mssOpt:8,
+            tcph_mssLen:8;
+    u_int16_t
+            tcph_mss;
+    u_int16_t
+            tcph_sack:8,
+            tcph_sackLen:8;
+    u_int16_t
+            tcph_winOpt:8,
+            tcph_winLen:8;
+    u_int32_t
+            tcph_win:8,
+            tcph_winNOP:8,
+            tcph_timeOpt:8,
+            tcph_timeLen:8;
+    u_int32_t tcph_time;
+    u_int32_t tcph_timeEcho;
 };
 
 
