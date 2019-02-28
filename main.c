@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
     tcp->dataOffset = 10;
 
-    tcp->reserved = 0x000;
+    tcp->reserved = 0;
 
     tcp->controlBits = TCPFlag_SYN;
 

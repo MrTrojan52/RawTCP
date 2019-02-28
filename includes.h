@@ -18,14 +18,14 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#define TCPFlag_FIN (1 << 1)
-#define TCPFlag_SYN (1 << 2)
-#define TCPFlag_RST (1 << 3)
-#define TCPFlag_PSH (1 << 4)
-#define TCPFlag_ACK (1 << 5)
-#define TCPFlag_URG (1 << 6)
-#define TCPFlag_ECE (1 << 7)
-#define TCPFlag_CWR (1 << 8)
+#define TCPFlag_FIN 1
+#define TCPFlag_SYN 2
+#define TCPFlag_RST 4
+#define TCPFlag_PSH 8
+#define TCPFlag_ACK 16
+#define TCPFlag_URG 32
+#define TCPFlag_ECE 64
+#define TCPFlag_CWR 128
 
 #define PCKT_LEN 8192
 
@@ -98,16 +98,17 @@ struct tcpheader {
     u_int32_t           sequenceNumber;
     u_int32_t           acknowledgeNumber;
 #if __BYTE_ORDER == LITTLE_ENDIAN
+    u_int16_t           ns:1;
     u_int16_t           reserved:3;
     u_int16_t           dataOffset:4;
 #elif __BYTE_ORDER == BIG_ENDIAN
     u_int16_t           dataOffset:4;
     u_int16_t           reserved:3;
-
+    u_int16_t           ns:1;
 #else
 #error MIDDLE-ENDIAN SYSTEM PIZDEC
 #endif
-    u_int16_t           controlBits:9;
+    u_int16_t           controlBits:8;
     u_int16_t           window;
     u_int16_t           checkSum;
     u_int16_t           urgentPointer;
