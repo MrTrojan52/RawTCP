@@ -65,19 +65,19 @@ int main(int argc, char *argv[])
 
     sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 
-    if(sd < 0)
-
-    {
-
-        perror("socket() error");
-
-        exit(-1);
-
-    }
-
-    else
-
-        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
+//    if(sd < 0)
+//
+//    {
+//
+//        perror("socket() error");
+//
+//        exit(-1);
+//
+//    }
+//
+//    else
+//
+//        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
 
 
 
@@ -147,9 +147,9 @@ int main(int argc, char *argv[])
 
     tcp->dataOffset = 10;
 
-    tcp->reserved = 0;
+    tcp->reserved = 0x000;
 
-    tcp->controlBits = TCPFlag_FIN;
+    tcp->controlBits = TCPFlag_SYN;
 
     tcp->window = htons(32768);
 
