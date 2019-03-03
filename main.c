@@ -21,12 +21,8 @@ unsigned short csum(unsigned short *buf, int len)
 
 }
 
-
-
-int main(int argc, char *argv[])
-
+void send_package(const char* sip, const char* sport, const char* dip, const char* dport)
 {
-
     int sd;
 
     char buffer[PCKT_LEN];
@@ -43,25 +39,7 @@ int main(int argc, char *argv[])
 
     const int *val = &one;
 
-
-
     memset(buffer, 0, PCKT_LEN);
-
-
-
-    if(argc != 5)
-
-    {
-
-        printf("- Invalid parameters!!!\n");
-
-        printf("- Usage: %s <source hostname/IP> <source port> <target hostname/IP> <target port>\n", argv[0]);
-
-        exit(-1);
-
-    }
-
-
 
     sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 
@@ -82,9 +60,9 @@ int main(int argc, char *argv[])
 
     din.sin_family = AF_INET;
 
-    din.sin_port = htons(atoi(argv[4]));
+    din.sin_port = htons(atoi(dport));
 
-    din.sin_addr.s_addr = inet_addr(argv[3]);
+    din.sin_addr.s_addr = inet_addr(dip);
 
 // IP structure
 
@@ -110,21 +88,21 @@ int main(int argc, char *argv[])
 
 // Source IP, modify as needed, spoofed, we accept through command line argument
 
-    ip->sourceIP = inet_addr(argv[1]);
+    ip->sourceIP = inet_addr(sip);
 
 // Destination IP, modify as needed, but here we accept through command line argument
 
-    ip->destinationIP = inet_addr(argv[3]);
+    ip->destinationIP = inet_addr(dip);
 
 
 
 // The TCP structure. The source port, spoofed, we accept through the command line
 
-    tcp->sourcePort = htons(atoi(argv[2]));
+    tcp->sourcePort = htons(atoi(sport));
 
 // The destination port, we accept through command line
 
-    tcp->destinationPort = htons(atoi(argv[4]));
+    tcp->destinationPort = htons(atoi(dport));
 
     tcp->sequenceNumber = htonl(1);
 
@@ -169,9 +147,9 @@ int main(int argc, char *argv[])
     tcpOptions->tcph_time         = 0xdb2b0d00;
 
 // IP checksum calculation
-const char* message = "TEST";
-strcpy(buffer + ip->totalLength, message);
-ip->totalLength += strlen(message);
+    const char* message = "TEST";
+    strcpy(buffer + ip->totalLength, message);
+    ip->totalLength += strlen(message);
 //    buffer[ip->totalLength++] = 'T';
 //    buffer[ip->totalLength++] = 'E';
 //    buffer[ip->totalLength++] = 'S';
@@ -196,12 +174,7 @@ ip->totalLength += strlen(message);
 
 
 
-    printf("Using:::::Source IP: %s port: %u, Target IP: %s port: %u.\n", argv[1], atoi(argv[2]), argv[3], atoi(argv[4]));
-
-
-
-// sendto() loop, send every 2 second for 50 counts
-
+    printf("Using:::::Source IP: %s port: %u, Target IP: %s port: %u.\n", sip, atoi(sport), dip, atoi(dport));
     unsigned int count;
 
     for(count = 0; count < 20; count++)
@@ -225,6 +198,24 @@ ip->totalLength += strlen(message);
 
     close(sd);
 
+}
+
+
+int main(int argc, char *argv[])
+
+{
+    if(argc != 5)
+
+    {
+
+        printf("- Invalid parameters!!!\n");
+
+        printf("- Usage: %s <source hostname/IP> <source port> <target hostname/IP> <target port>\n", argv[0]);
+
+        exit(-1);
+
+    }
+    send_package(argv[1], argv[2], argv[3], argv[4]);
     return 0;
 
 }
