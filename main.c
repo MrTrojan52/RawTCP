@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
     struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
 
-    struct sockaddr_in sin, din;
+    struct sockaddr_in din;
 
     int one = 1;
 
@@ -65,39 +65,24 @@ int main(int argc, char *argv[])
 
     sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
 
-//    if(sd < 0)
-//
-//    {
-//
-//        perror("socket() error");
-//
-//        exit(-1);
-//
-//    }
-//
-//    else
-//
-//        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
+    if(sd < 0)
 
+    {
 
+        perror("socket() error");
 
-// The source is redundant, may be used later if needed
+        exit(-1);
 
-// Address family
+    }
 
-    sin.sin_family = AF_INET;
+    else
+
+        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
+
 
     din.sin_family = AF_INET;
 
-// Source port, can be any, modify as needed
-
-    sin.sin_port = htons(atoi(argv[2]));
-
     din.sin_port = htons(atoi(argv[4]));
-
-// Source IP, can be any, modify as needed
-
-    sin.sin_addr.s_addr = inet_addr(argv[1]);
 
     din.sin_addr.s_addr = inet_addr(argv[3]);
 
@@ -184,10 +169,13 @@ int main(int argc, char *argv[])
     tcpOptions->tcph_time         = 0xdb2b0d00;
 
 // IP checksum calculation
-    buffer[ip->totalLength++] = 'T';
-    buffer[ip->totalLength++] = 'E';
-    buffer[ip->totalLength++] = 'S';
-    buffer[ip->totalLength++] = 'T';
+const char* message = "TEST";
+strcpy(buffer + ip->totalLength, message);
+ip->totalLength += strlen(message);
+//    buffer[ip->totalLength++] = 'T';
+//    buffer[ip->totalLength++] = 'E';
+//    buffer[ip->totalLength++] = 'S';
+//    buffer[ip->totalLength++] = 'T';
 //    ip->headerChecksum = csum((unsigned short *) buffer, ip->totalLength);
 
 // Inform the kernel do not fill up the headers' structure, we fabricated our own
@@ -220,7 +208,7 @@ int main(int argc, char *argv[])
 
     {
 
-        if(sendto(sd, buffer, ip->totalLength, 0, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+        if(sendto(sd, buffer, ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
         {
 
             perror("sendto() error");
