@@ -18,14 +18,16 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#define TCPFlag_FIN 1
-#define TCPFlag_SYN 2
-#define TCPFlag_RST 4
-#define TCPFlag_PSH 8
-#define TCPFlag_ACK 16
-#define TCPFlag_URG 32
-#define TCPFlag_ECE 64
-#define TCPFlag_CWR 128
+enum tcp_flags {
+    TCPFlag_FIN = 1,
+    TCPFlag_SYN = 2,
+    TCPFlag_RST = 4,
+    TCPFlag_PSH = 8,
+    TCPFlag_ACK = 16,
+    TCPFlag_URG = 32,
+    TCPFlag_ECE = 64,
+    TCPFlag_CWR = 128
+};
 
 #define PCKT_LEN 8192
 
@@ -88,8 +90,16 @@ struct ipheader {
 
 };
 
-
-
+/* Structure of a Pseudo TCP header */
+#pragma pack(push, 1)
+struct pseudo_tcp {
+    u_int32_t          sourceIP;
+    u_int32_t          destIP;
+    u_int8_t           res;
+    u_int8_t           protocol;
+    u_int16_t           tcpLength;
+};
+#pragma pack (pop)
 /* Structure of a TCP header */
 
 struct tcpheader {

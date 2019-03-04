@@ -1,6 +1,5 @@
 #include "includes.h"
 
-
 // Simple checksum function, may use others such as Cyclic Redundancy Check, CRC
 
 unsigned short csum(unsigned short *buf, int len)
@@ -21,11 +20,9 @@ unsigned short csum(unsigned short *buf, int len)
 
 }
 
-void send_package(const char* sip, const char* sport, const char* dip, const char* dport)
+void build_packet(char* buffer,const char* sip, const char* sport, const char* dip, const char* dport, enum tcp_flags flags, const char* data, u_int16_t dataLen)
 {
-    int sd;
-
-    char buffer[PCKT_LEN];
+    char buff2[512];
 
     struct ipheader *ip = (struct ipheader *) buffer;
 
@@ -33,38 +30,9 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
     struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
 
-    struct sockaddr_in din;
+    struct pseudo_tcp *tcp_pseudo = (struct pseudo_tcp *) buff2;
 
-    int one = 1;
-
-    const int *val = &one;
-
-    memset(buffer, 0, PCKT_LEN);
-
-    sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
-
-    if(sd < 0)
-
-    {
-
-        perror("socket() error");
-
-        exit(-1);
-
-    }
-
-    else
-
-        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
-
-
-    din.sin_family = AF_INET;
-
-    din.sin_port = htons(atoi(dport));
-
-    din.sin_addr.s_addr = inet_addr(dip);
-
-// IP structure
+    // IP structure
 
     ip->version = 4;
 
@@ -112,7 +80,7 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
     tcp->reserved = 0;
 
-    tcp->controlBits = TCPFlag_SYN;
+    tcp->controlBits = flags;
 
     tcp->window = htons(32768);
 
@@ -146,15 +114,61 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
     tcpOptions->tcph_time         = 0xdb2b0d00;
 
-// IP checksum calculation
-    const char* message = "TEST";
-    strcpy(buffer + ip->totalLength, message);
-    ip->totalLength += strlen(message);
-//    buffer[ip->totalLength++] = 'T';
-//    buffer[ip->totalLength++] = 'E';
-//    buffer[ip->totalLength++] = 'S';
-//    buffer[ip->totalLength++] = 'T';
-//    ip->headerChecksum = csum((unsigned short *) buffer, ip->totalLength);
+    // IP checksum calculation
+    if(data) {
+        strcpy(buffer + ip->totalLength, data);
+        ip->totalLength += dataLen;
+    }
+
+    tcp_pseudo->protocol = 6;
+    tcp_pseudo->sourceIP = inet_addr(sip);
+    tcp_pseudo->destIP = inet_addr(dip);
+    tcp_pseudo->res = 0;
+    tcp_pseudo->tcpLength = htons(ip->totalLength - sizeof(struct ipheader));
+    memcpy(buff2 + sizeof(struct pseudo_tcp), tcp, ip->totalLength - sizeof(struct ipheader));
+    tcp->checkSum = csum((unsigned short *)buff2, sizeof(struct pseudo_tcp) + ip->totalLength - sizeof(struct ipheader));
+}
+
+void send_package(const char* sip, const char* sport, const char* dip, const char* dport)
+{
+    int sd;
+
+    char send_buffer[PCKT_LEN];
+
+    char receive_buffer[PCKT_LEN];
+
+    memset(send_buffer, 0, PCKT_LEN);
+
+    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_SYN, NULL, 0);
+
+    struct sockaddr_in din;
+
+    int one = 1;
+
+    const int *val = &one;
+
+    sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+
+    if(sd < 0)
+
+    {
+
+        perror("socket() error");
+
+        exit(-1);
+
+    }
+
+    else
+
+        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
+
+
+    din.sin_family = AF_INET;
+
+    din.sin_port = htons(atoi(dport));
+
+    din.sin_addr.s_addr = inet_addr(dip);
 
 // Inform the kernel do not fill up the headers' structure, we fabricated our own
 
@@ -175,28 +189,93 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
 
     printf("Using:::::Source IP: %s port: %u, Target IP: %s port: %u.\n", sip, atoi(sport), dip, atoi(dport));
-    unsigned int count;
 
-    for(count = 0; count < 20; count++)
+
+    if(sendto(sd, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
+    {
+
+        perror("sendto() error");
+
+        exit(-1);
+
+    } else {
+        printf(" sendto() is OK\n");
+    }
+
+
+    memset(receive_buffer, 0, PCKT_LEN);
+    int bytes_received = recv(sd, receive_buffer, PCKT_LEN, 0);
+    struct ipheader* ip = (struct ipheader*) receive_buffer;
+    struct tcpheader* tcp = (struct tcpheader*) (receive_buffer + sizeof(struct ipheader));
+    if(tcp->controlBits == TCPFlag_SYN | TCPFlag_ACK)
+    {
+        struct tcpheader* sndtcp = (struct tcpheader*)(send_buffer + sizeof(struct ipheader));
+        sndtcp->controlBits = TCPFlag_ACK;
+        sndtcp->acknowledgeNumber = tcp->sequenceNumber;
+        sndtcp->sequenceNumber = htonl(2);
+        sendto(sd, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din));
+    }
+    sleep(100);
+    //close(sd);
+
+}
+
+void start_server(const char* port)
+{
+    int sd;
+
+    char buffer[PCKT_LEN];
+
+    struct ipheader *ip = (struct ipheader *) buffer;
+
+    struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
+
+    struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
+
+    struct sockaddr_in sin;
+
+
+    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_family = AF_PACKET;
+    sin.sin_port = htons(atoi(port));
+
+    sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    if(sd < 0)
 
     {
 
-        if(sendto(sd, buffer, ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
-        {
+        perror("socket() error");
 
-            perror("sendto() error");
-
-            exit(-1);
-
-        } else {
-            printf("Count #%u - sendto() is OK\n", count);
-        }
-
-        sleep(2);
+        exit(-1);
 
     }
 
-    close(sd);
+    else
+
+        printf("socket()-SOCK_RAW and tcp protocol is OK.\n");
+    int one = 1;
+
+    const int *val = &one;
+
+    if(setsockopt(sd, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0)
+
+    {
+
+        perror("setsockopt() error");
+
+        exit(-1);
+
+    }
+
+    else
+
+        printf("setsockopt() is OK\n");
+
+
+    bind(sd, (struct sockaddr*)&sin, sizeof(sin));
+
+    int bytes = recv(sd, buffer, PCKT_LEN, 0);
+    printf("Received %d bytes", bytes);
 
 }
 
@@ -204,18 +283,20 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 int main(int argc, char *argv[])
 
 {
-    if(argc != 5)
-
+    if(argc == 2)
     {
+        start_server(argv[1]);
 
+    } else if (argc == 5) {
+        send_package(argv[1], argv[2], argv[3], argv[4]);
+    } else {
         printf("- Invalid parameters!!!\n");
 
         printf("- Usage: %s <source hostname/IP> <source port> <target hostname/IP> <target port>\n", argv[0]);
 
         exit(-1);
-
     }
-    send_package(argv[1], argv[2], argv[3], argv[4]);
+
     return 0;
 
 }
