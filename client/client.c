@@ -1,4 +1,4 @@
-#include "functions.h"
+#include "../functions.h"
 
 
 void send_package(const char* sip, const char* sport, const char* dip, const char* dport)

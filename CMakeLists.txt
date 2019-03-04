@@ -6,7 +6,7 @@ set(SERVER "RawTCPServer")
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(${CLIENT} main.c includes.h functions.h functions.c)
+add_executable(${CLIENT} client/client.c includes.h functions.h functions.c)
 add_executable(${SERVER} server/server.c includes.h functions.h functions.c)
 add_custom_command( TARGET RawTCP POST_BUILD
                     COMMAND sudo chown root:root ${CLIENT}
