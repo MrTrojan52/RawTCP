@@ -54,7 +54,8 @@ void start_server(const char* port)
     bind(sd, (struct sockaddr*)&sin, sizeof(sin));
 
     int bytes = recv(sd, buffer, PCKT_LEN, 0);
-    printf("Received %d bytes", ntohs(tcp->destinationPort));
+    if(tcp->destinationPort == htons(atoi(port)))
+        printf("Received %d bytes", ntohs(tcp->destinationPort));
 
 }
 
