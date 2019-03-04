@@ -6,15 +6,17 @@ void start_server(const char* port)
 {
     int sd;
 
-    char buffer[PCKT_LEN];
+    char recv_buffer[PCKT_LEN];
 
-    struct ipheader *ip = (struct ipheader *) buffer;
+    char send_buffer[PCKT_LEN];
 
-    struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
+    struct ipheader *ip = (struct ipheader *) recv_buffer;
 
-    struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
+    struct tcpheader *tcp = (struct tcpheader *) (recv_buffer + sizeof(struct ipheader));
 
-    struct sockaddr_in sin;
+    struct tcpheaderOptions *tcpOptions = (struct tcpheaderOptions *) (recv_buffer + sizeof(struct ipheader) + sizeof(struct tcpheader));
+
+    struct sockaddr_in sin, din;
 
 
     sin.sin_addr.s_addr = INADDR_ANY;
@@ -58,11 +60,25 @@ void start_server(const char* port)
     while(1)
     {
         SERVER_STATUS = LISTEN;
-        int bytes = recv(sd, buffer, PCKT_LEN, 0);
+        int bytes = recv(sd, recv_buffer, PCKT_LEN, 0);
         if(tcp->destinationPort == htons(atoi(port)))
         {
             if(tcp->controlBits == TCPFlag_SYN) {
-                build_packet(buffer, ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort, TCPFlag_SYN | TCPFlag_ACK, NULL, 0);
+                din.sin_family = AF_INET;
+                din.sin_port = tcp->sourcePort;
+                din.sin_addr.s_addr = ip->sourceIP;
+                memset(send_buffer, 0, PCKT_LEN);
+                build_packet(send_buffer, ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort, TCPFlag_SYN | TCPFlag_ACK, NULL, 0);
+                struct ipheader* send_ip = (struct ipheader*)send_buffer;
+                if(sendto(sd, send_buffer, send_ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
+                {
+                    perror("sendto() error");
+
+                    exit(-1);
+                } else {
+                    SERVER_STATUS = SYN_RECEIVED;
+                    printf(" sendto() is OK\n");
+                }
             }
         }
 

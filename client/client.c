@@ -1,5 +1,6 @@
 #include "../functions.h"
 
+TCP_Status CLIENT_STATUS = CLOSED;
 
 void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport)
 {
@@ -71,6 +72,7 @@ void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport
         exit(-1);
 
     } else {
+        CLIENT_STATUS = SYN_SENT;
         printf(" sendto() is OK\n");
     }
 
