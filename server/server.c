@@ -1,4 +1,7 @@
 #include "../functions.h"
+
+TCP_Status SERVER_STATUS = CLOSED;
+
 void start_server(const char* port)
 {
     int sd;
@@ -52,10 +55,18 @@ void start_server(const char* port)
 
 
     bind(sd, (struct sockaddr*)&sin, sizeof(sin));
+    while(1)
+    {
+        SERVER_STATUS = LISTEN;
+        int bytes = recv(sd, buffer, PCKT_LEN, 0);
+        if(tcp->destinationPort == htons(atoi(port)))
+        {
+            if(tcp->controlBits == TCPFlag_SYN) {
+                build_packet(buffer, ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort, TCPFlag_SYN | TCPFlag_ACK, NULL, 0);
+            }
+        }
 
-    int bytes = recv(sd, buffer, PCKT_LEN, 0);
-    if(tcp->destinationPort == htons(atoi(port)))
-        printf("Received %d bytes", ntohs(tcp->destinationPort));
+    }
 
 }
 

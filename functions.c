@@ -18,7 +18,7 @@ unsigned short csum(unsigned short *buf, int len)
 
 }
 
-void build_packet(char* buffer,const char* sip, const char* sport, const char* dip, const char* dport, enum tcp_flags flags, const char* data, u_int16_t dataLen)
+void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport, TCP_Flags flags, const char* data, u_int16_t dataLen)
 {
     char buff2[512];
 
@@ -54,21 +54,21 @@ void build_packet(char* buffer,const char* sip, const char* sport, const char* d
 
 // Source IP, modify as needed, spoofed, we accept through command line argument
 
-    ip->sourceIP = inet_addr(sip);
+    ip->sourceIP = sip;
 
 // Destination IP, modify as needed, but here we accept through command line argument
 
-    ip->destinationIP = inet_addr(dip);
+    ip->destinationIP = dip;
 
 
 
 // The TCP structure. The source port, spoofed, we accept through the command line
 
-    tcp->sourcePort = htons(atoi(sport));
+    tcp->sourcePort = sport;
 
 // The destination port, we accept through command line
 
-    tcp->destinationPort = htons(atoi(dport));
+    tcp->destinationPort = dport;
 
     tcp->sequenceNumber = htonl(1);
 
@@ -119,8 +119,8 @@ void build_packet(char* buffer,const char* sip, const char* sport, const char* d
     }
 
     tcp_pseudo->protocol = 6;
-    tcp_pseudo->sourceIP = inet_addr(sip);
-    tcp_pseudo->destIP = inet_addr(dip);
+    tcp_pseudo->sourceIP = sip;
+    tcp_pseudo->destIP = dip;
     tcp_pseudo->res = 0;
     tcp_pseudo->tcpLength = htons(ip->totalLength - sizeof(struct ipheader));
     memcpy(buff2 + sizeof(struct pseudo_tcp), tcp, ip->totalLength - sizeof(struct ipheader));

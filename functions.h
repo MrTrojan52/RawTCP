@@ -7,7 +7,7 @@
 
 #include "includes.h"
 
-    void build_packet(char* buffer,const char* sip, const char* sport, const char* dip, const char* dport, enum tcp_flags flags, const char* data, unsigned short dataLen);
+    void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport, TCP_Flags flags, const char* data, unsigned short dataLen);
     unsigned short csum(unsigned short *buf, int len);
 
 #endif //RAWTCP_FUNCTIONS_H

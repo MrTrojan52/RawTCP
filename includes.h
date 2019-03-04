@@ -29,6 +29,24 @@ enum tcp_flags {
     TCPFlag_CWR = 128
 };
 
+typedef enum tcp_flags TCP_Flags;
+
+enum tcp_status {
+    CLOSED,
+    LISTEN,
+    SYN_SENT,
+    SYN_RECEIVED,
+    ESTABLISHED,
+    FIN_WAIT1,
+    CLOSE_WAIT,
+    FIN_WAIT2,
+    LAST_ACK,
+    TIME_WAIT,
+    CLOSING
+};
+
+typedef enum tcp_status TCP_Status;
+
 #define PCKT_LEN 8192
 
 

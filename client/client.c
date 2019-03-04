@@ -1,7 +1,7 @@
 #include "../functions.h"
 
 
-void send_package(const char* sip, const char* sport, const char* dip, const char* dport)
+void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport)
 {
     int sd;
 
@@ -38,9 +38,9 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
     din.sin_family = AF_INET;
 
-    din.sin_port = htons(atoi(dport));
+    din.sin_port = dport;
 
-    din.sin_addr.s_addr = inet_addr(dip);
+    din.sin_addr.s_addr = dip;
 
 // Inform the kernel do not fill up the headers' structure, we fabricated our own
 
@@ -60,7 +60,7 @@ void send_package(const char* sip, const char* sport, const char* dip, const cha
 
 
 
-    printf("Using:::::Source IP: %s port: %u, Target IP: %s port: %u.\n", sip, atoi(sport), dip, atoi(dport));
+    printf("Using:::::Source:  port: %u, Target: port: %u.\n", ntohs(sport), ntohs(dport));
 
 
     if(sendto(sd, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
 {
     if (argc == 5) {
-        send_package(argv[1], argv[2], argv[3], argv[4]);
+        send_package(inet_addr(argv[1]), htons(atoi(argv[2])), inet_addr(argv[3]), htons(atoi(argv[4])));
     } else {
         printf("- Invalid parameters!!!\n");
 
