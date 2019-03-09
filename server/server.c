@@ -1,14 +1,19 @@
 #include "../functions.h"
 
+int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport);
+void set_server_status(TCP_Status status);
+const char* toString(TCP_Status status);
+
 TCP_Status SERVER_STATUS = CLOSED;
+
+u_int32_t ACK_NUM = 0;
+u_int32_t SEQ_NUM = 0;
 
 void start_server(const char* port)
 {
     int sd;
 
     char recv_buffer[PCKT_LEN];
-
-    char send_buffer[PCKT_LEN];
 
     struct ipheader *ip = (struct ipheader *) recv_buffer;
 
@@ -59,33 +64,49 @@ void start_server(const char* port)
     bind(sd, (struct sockaddr*)&sin, sizeof(sin));
     while(1)
     {
-        SERVER_STATUS = LISTEN;
-        int bytes = recv(sd, recv_buffer, PCKT_LEN, 0);
-        if(tcp->destinationPort == htons(atoi(port)))
-        {
-            if(tcp->controlBits == TCPFlag_SYN) {
-                printf("\nSYN: Client request connection\n");
-                din.sin_family = AF_INET;
-                din.sin_port = tcp->sourcePort;
-                din.sin_addr.s_addr = ip->sourceIP;
-                memset(send_buffer, 0, PCKT_LEN);
-                build_packet(send_buffer, ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort, TCPFlag_SYN | TCPFlag_ACK, NULL, 0);
-                struct ipheader* send_ip = (struct ipheader*)send_buffer;
-                if(sendto(sd, send_buffer, send_ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
-                {
-                    perror("sendto() error");
+        set_server_status(LISTEN);
+        wait_tcp_packet_with_flag(sd, recv_buffer, PCKT_LEN, 0, TCPFlag_SYN, htons(atoi(port)));
+        set_server_status(SYN_RECEIVED);
+        printf("\nSYN: Client request connection\n");
+        accept_client(ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort);
 
-                    exit(-1);
-                } else {
-                    SERVER_STATUS = SYN_RECEIVED;
-                    printf("SYN-ACK: Send to client\n");
-                }
-            }
-        }
 
     }
-
 }
+
+int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport)
+{
+    char buf[PCKT_LEN];
+
+    memset(buf, 0, PCKT_LEN);
+
+    struct ipheader *ip = (struct ipheader *) buf;
+    int csock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    struct sockaddr_in din;
+
+    din.sin_family = AF_INET;
+    din.sin_port = sport;
+    din.sin_addr.s_addr = sip;
+
+    bind(csock, (struct sockaddr*)&din, sizeof(din));
+
+    build_packet(buf, dip, dport, sip, sport, TCPFlag_SYN | TCPFlag_ACK, NULL, 0, SEQ_NUM, ++ACK_NUM);
+
+    if(sendto(csock, buf, ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
+    {
+        perror("sendto() error");
+
+        exit(-1);
+    } else {
+
+        printf("SYN-ACK: Send to client\n");
+    }
+    memset(buf, 0, PCKT_LEN);
+    wait_tcp_packet_with_flag(csock, buf, PCKT_LEN, 0, TCPFlag_ACK, sport);
+    set_server_status(ESTABLISHED);
+    return csock;
+}
+
 
 int main(int argc, char *argv[])
 

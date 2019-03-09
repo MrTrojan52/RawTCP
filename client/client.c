@@ -12,7 +12,7 @@ void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport
 
     memset(send_buffer, 0, PCKT_LEN);
 
-    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_SYN, NULL, 0);
+    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_SYN, NULL, 0, 0, 0);
 
     struct sockaddr_in din;
 

@@ -18,7 +18,7 @@ unsigned short csum(unsigned short *buf, int len)
 
 }
 
-void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport, TCP_Flags flags, const char* data, u_int16_t dataLen)
+void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport, TCP_Flags flags, const char* data, u_int16_t dataLen, u_int32_t seq, u_int32_t ack)
 {
     char buff2[512];
 
@@ -70,9 +70,9 @@ void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_
 
     tcp->destinationPort = dport;
 
-    tcp->sequenceNumber = htonl(1);
+    tcp->sequenceNumber = seq;
 
-    tcp->acknowledgeNumber = 0;
+    tcp->acknowledgeNumber = ack;
 
     tcp->dataOffset = 10;
 
@@ -125,4 +125,54 @@ void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_
     tcp_pseudo->tcpLength = htons(ip->totalLength - sizeof(struct ipheader));
     memcpy(buff2 + sizeof(struct pseudo_tcp), tcp, ip->totalLength - sizeof(struct ipheader));
     tcp->checkSum = csum((unsigned short *)buff2, sizeof(struct pseudo_tcp) + ip->totalLength - sizeof(struct ipheader));
+}
+
+void* wait_tcp_packet_with_flag(int __fd, void* buffer, size_t size, int flags, TCP_Flags tcpFlags, unsigned short port)
+{
+    struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
+    int bytes = recv(__fd, buffer, size, flags);
+    if(!bytes) return NULL;
+    if(tcp->destinationPort == port && tcp->controlBits == tcpFlags)
+    {
+        return buffer;
+    }
+}
+
+void set_server_status(TCP_Status status)
+{
+    const char* s = toString(status);
+    printf("Status is: %s\n", s);
+}
+
+const char* toString(TCP_Status status)
+{
+    switch (status)
+    {
+        case CLOSED:
+            return "CLOSED";
+        case LISTEN:
+            return "LISTEN";
+        case SYN_SENT:
+            return "SYN_SENT";
+        case SYN_RECEIVED:
+            return "SYN_RECEIVED";
+        case ESTABLISHED:
+            return "ESTABLISHED";
+        case FIN_WAIT1:
+            return "FIN_WAIT1";
+        case CLOSE_WAIT:
+            return "CLOSE_WAIT";
+        case FIN_WAIT2:
+            return "FIN_WAIT2";
+        case LAST_ACK:
+            return "LAST_ACK";
+        case TIME_WAIT:
+            return "TIME_WAIT";
+        case CLOSING:
+            return "CLOSING";
+        default:
+            return "UNKNOWN";
+
+    }
+
 }
