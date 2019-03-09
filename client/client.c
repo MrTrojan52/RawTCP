@@ -5,7 +5,7 @@ u_int32_t ACK_NUM = 0;
 
 TCP_Status CLIENT_STATUS = CLOSED;
 
-void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport)
+int connect_to_server(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport)
 {
     int sd;
 
@@ -88,8 +88,7 @@ void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport
     build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_ACK, NULL, 0, ++SEQ_NUM, ACK_NUM);
     sendto(sd, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din));
     set_status(&CLIENT_STATUS, ESTABLISHED);
-    sleep(100);
-    //close(sd);
+    return sd;
 
 }
 
@@ -100,7 +99,8 @@ int main(int argc, char *argv[])
 
 {
     if (argc == 5) {
-        send_package(inet_addr(argv[1]), htons(atoi(argv[2])), inet_addr(argv[3]), htons(atoi(argv[4])));
+        set_status(&CLIENT_STATUS, CLOSED);
+        int sock = connect_to_server(inet_addr(argv[1]), htons(atoi(argv[2])), inet_addr(argv[3]), htons(atoi(argv[4])));
     } else {
         printf("- Invalid parameters!!!\n");
 

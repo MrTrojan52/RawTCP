@@ -59,15 +59,19 @@ void start_server(const char* port)
         printf("setsockopt() is OK\n");
 
 
-    bind(sd, (struct sockaddr*)&sin, sizeof(sin));
-    while(1)
+    if(bind(sd, (struct sockaddr*)&sin, sizeof(sin)) < 0)
     {
-        set_status(&SERVER_STATUS, LISTEN);
-        wait_tcp_packet_with_flag(sd, recv_buffer, PCKT_LEN, 0, TCPFlag_SYN, htons(atoi(port)));
-        set_status(&SERVER_STATUS, SYN_RECEIVED);
-        printf("\nSYN: Client request connection\n");
-        accept_client(ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort);
-    }
+        perror("bind error");
+        exit(-1);
+    };
+
+
+    set_status(&SERVER_STATUS, LISTEN);
+    wait_tcp_packet_with_flag(sd, recv_buffer, PCKT_LEN, 0, TCPFlag_SYN, htons(atoi(port)));
+    set_status(&SERVER_STATUS, SYN_RECEIVED);
+    printf("\nSYN: Client request connection\n");
+    accept_client(ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort);
+
 }
 
 int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport)

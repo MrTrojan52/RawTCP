@@ -130,12 +130,11 @@ void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_
 void* wait_tcp_packet_with_flag(int __fd, void* buffer, size_t size, int flags, TCP_Flags tcpFlags, unsigned short port)
 {
     struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
-    int bytes = recv(__fd, buffer, size, flags);
-    if(!bytes) return NULL;
-    if(tcp->destinationPort == port && tcp->controlBits == tcpFlags)
+    do
     {
-        return buffer;
-    }
+        int bytes = recv(__fd, buffer, size, flags);
+    } while (tcp->destinationPort != port || tcp->controlBits != tcpFlags);
+    return buffer;
 }
 
 void set_status(TCP_Status* src, TCP_Status status)
