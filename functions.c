@@ -138,8 +138,9 @@ void* wait_tcp_packet_with_flag(int __fd, void* buffer, size_t size, int flags, 
     }
 }
 
-void set_server_status(TCP_Status status)
+void set_status(TCP_Status* src, TCP_Status status)
 {
+    *src = status;
     const char* s = toString(status);
     printf("Status is: %s\n", s);
     fflush(stdout);

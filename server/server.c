@@ -1,13 +1,11 @@
 #include "../functions.h"
 
 int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport);
-void set_server_status(TCP_Status status);
-const char* toString(TCP_Status status);
 
 TCP_Status SERVER_STATUS = CLOSED;
 
 u_int32_t ACK_NUM = 0;
-u_int32_t SEQ_NUM = 0;
+u_int32_t SEQ_NUM = 1;
 
 void start_server(const char* port)
 {
@@ -64,13 +62,11 @@ void start_server(const char* port)
     bind(sd, (struct sockaddr*)&sin, sizeof(sin));
     while(1)
     {
-        set_server_status(LISTEN);
+        set_status(&SERVER_STATUS, LISTEN);
         wait_tcp_packet_with_flag(sd, recv_buffer, PCKT_LEN, 0, TCPFlag_SYN, htons(atoi(port)));
-        set_server_status(SYN_RECEIVED);
+        set_status(&SERVER_STATUS, SYN_RECEIVED);
         printf("\nSYN: Client request connection\n");
         accept_client(ip->destinationIP, htons(atoi(port)), ip->sourceIP, tcp->sourcePort);
-
-
     }
 }
 
@@ -103,7 +99,7 @@ int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport
     }
     memset(buf, 0, PCKT_LEN);
     wait_tcp_packet_with_flag(csock, buf, PCKT_LEN, 0, TCPFlag_ACK, sport);
-    set_server_status(ESTABLISHED);
+    set_status(&SERVER_STATUS, ESTABLISHED);
     return csock;
 }
 
