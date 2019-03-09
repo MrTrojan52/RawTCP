@@ -70,7 +70,7 @@ void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_
 
     tcp->destinationPort = dport;
 
-    tcp->sequenceNumber = seq;
+    tcp->sequenceNumber = htonl(seq);
 
     tcp->acknowledgeNumber = ack;
 
@@ -142,6 +142,7 @@ void set_server_status(TCP_Status status)
 {
     const char* s = toString(status);
     printf("Status is: %s\n", s);
+    fflush(stdout);
 }
 
 const char* toString(TCP_Status status)
