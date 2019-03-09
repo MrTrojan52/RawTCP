@@ -73,7 +73,7 @@ void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport
 
     } else {
         CLIENT_STATUS = SYN_SENT;
-        printf(" sendto() is OK\n");
+        printf("SYN-sent: Try to connect\n");
     }
 
 
@@ -88,6 +88,7 @@ void send_package(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport
         sndtcp->acknowledgeNumber = tcp->sequenceNumber;
         sndtcp->sequenceNumber = htonl(2);
         sendto(sd, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din));
+        printf("ACK: Client send ACK after SYN-ACK\n");
     }
     sleep(100);
     //close(sd);

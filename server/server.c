@@ -64,6 +64,7 @@ void start_server(const char* port)
         if(tcp->destinationPort == htons(atoi(port)))
         {
             if(tcp->controlBits == TCPFlag_SYN) {
+                printf("\nSYN: Client request connection\n");
                 din.sin_family = AF_INET;
                 din.sin_port = tcp->sourcePort;
                 din.sin_addr.s_addr = ip->sourceIP;
@@ -77,7 +78,7 @@ void start_server(const char* port)
                     exit(-1);
                 } else {
                     SERVER_STATUS = SYN_RECEIVED;
-                    printf(" sendto() is OK\n");
+                    printf("SYN-ACK: Send to client\n");
                 }
             }
         }
