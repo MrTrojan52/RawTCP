@@ -6,10 +6,10 @@ TCP_Status SERVER_STATUS = CLOSED;
 
 u_int32_t ACK_NUM = 0;
 u_int32_t SEQ_NUM = 1;
-int sd;
+
 void start_server(const char* port)
 {
-
+    int sd;
 
     char recv_buffer[PCKT_LEN];
 
@@ -95,6 +95,20 @@ int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport
     din.sin_port = sport;
     din.sin_addr.s_addr = sip;
 
+    int one = 1;
+
+    const int *val = &one;
+
+    if(setsockopt(csock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0)
+
+    {
+
+        perror("setsockopt() error");
+
+        exit(-1);
+
+    }
+
     if(bind(csock, (struct sockaddr*)&din, sizeof(din)) < 0)
     {
         perror("bind() error");
@@ -103,7 +117,7 @@ int accept_client(in_addr_t dip, u_int16_t dport, in_addr_t sip, u_int16_t sport
     }
 
     build_packet(buf, dip, dport, sip, sport, TCPFlag_SYN | TCPFlag_ACK, NULL, 0, SEQ_NUM, ACK_NUM);
-    if(sendto(sd, buf, ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
+    if(sendto(csock, buf, ip->totalLength, 0, (struct sockaddr *)&din, sizeof(din)) < 0)
     {
         perror("sendto() error");
 
