@@ -1,6 +1,6 @@
 #include "../functions.h"
 
-u_int32_t SEQ_NUM = 1;
+u_int32_t SEQ_NUM = 0;
 u_int32_t ACK_NUM = 0;
 
 TCP_Status CLIENT_STATUS = CLOSED;
@@ -15,7 +15,7 @@ int connect_to_server(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t d
 
     memset(send_buffer, 0, PCKT_LEN);
 
-    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_SYN, NULL, 0, SEQ_NUM, ACK_NUM);
+    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_SYN, NULL, 0, ++SEQ_NUM, ACK_NUM);
 
     struct sockaddr_in din;
 
@@ -92,6 +92,38 @@ int connect_to_server(in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t d
 
 }
 
+void terminate_connection(int sock, in_addr_t sip, u_int16_t sport, in_addr_t dip, u_int16_t dport)
+{
+    char send_buffer[PCKT_LEN];
+
+    char receive_buffer[PCKT_LEN];
+    struct sockaddr_in din;
+
+    din.sin_family = AF_INET;
+
+    din.sin_port = dport;
+
+    din.sin_addr.s_addr = dip;
+
+    memset(send_buffer, 0, PCKT_LEN);
+
+    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_FIN, NULL, 0, ++SEQ_NUM, ACK_NUM);
+    sendto(sock, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din));
+    set_status(&CLIENT_STATUS, FIN_WAIT1);
+    memset(receive_buffer, 0, PCKT_LEN);
+    wait_tcp_packet_with_flag(sock, receive_buffer, PCKT_LEN, 0, TCPFlag_ACK, sport);
+    ACK_NUM = ((struct tcpheader*)( receive_buffer + sizeof(struct ipheader)))->sequenceNumber + 1;
+    set_status(&CLIENT_STATUS, FIN_WAIT2);
+    memset(receive_buffer, 0, PCKT_LEN);
+    wait_tcp_packet_with_flag(sock, receive_buffer, PCKT_LEN, 0, TCPFlag_FIN, sport);
+    ACK_NUM = ((struct tcpheader*)( receive_buffer + sizeof(struct ipheader)))->sequenceNumber + 1;
+    memset(send_buffer, 0, PCKT_LEN);
+
+    build_packet(send_buffer, sip, sport, dip, dport, TCPFlag_ACK, NULL, 0, ++SEQ_NUM, ACK_NUM);
+    sendto(sock, send_buffer, ((struct ipheader*)send_buffer)->totalLength, 0, (struct sockaddr *)&din, sizeof(din));
+    set_status(&CLIENT_STATUS, CLOSED);
+}
+
 
 
 
@@ -101,6 +133,7 @@ int main(int argc, char *argv[])
     if (argc == 5) {
         set_status(&CLIENT_STATUS, CLOSED);
         int sock = connect_to_server(inet_addr(argv[1]), htons(atoi(argv[2])), inet_addr(argv[3]), htons(atoi(argv[4])));
+        terminate_connection(sock,inet_addr(argv[1]), htons(atoi(argv[2])), inet_addr(argv[3]), htons(atoi(argv[4])));
     } else {
         printf("- Invalid parameters!!!\n");
 

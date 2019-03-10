@@ -127,14 +127,14 @@ void build_packet(char* buffer,in_addr_t sip, u_int16_t sport, in_addr_t dip, u_
     tcp->checkSum = csum((unsigned short *)buff2, sizeof(struct pseudo_tcp) + ip->totalLength - sizeof(struct ipheader));
 }
 
-void* wait_tcp_packet_with_flag(int __fd, void* buffer, size_t size, int flags, TCP_Flags tcpFlags, unsigned short port)
+int wait_tcp_packet_with_flag(int __fd, void* buffer, size_t size, int flags, TCP_Flags tcpFlags, unsigned short port)
 {
     struct tcpheader *tcp = (struct tcpheader *) (buffer + sizeof(struct ipheader));
     do
     {
         int bytes = recv(__fd, buffer, size, flags);
-    } while (tcp->destinationPort != port || tcp->controlBits != tcpFlags);
-    return buffer;
+    } while ((tcp->destinationPort != port || tcp->controlBits != tcpFlags) && (tcp->destinationPort != port || tcp->controlBits != TCPFlag_FIN));
+    return tcp->controlBits;
 }
 
 void set_status(TCP_Status* src, TCP_Status status)
